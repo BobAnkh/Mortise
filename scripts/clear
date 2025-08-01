@@ -1,0 +1,57 @@
+#!/bin/bash
+
+myname=${0##*/}
+
+clear_fin_wait1() {
+	original_value=$(cat /proc/sys/net/ipv4/tcp_max_orphans)
+	sudo -E sh -c "echo 0 > /proc/sys/net/ipv4/tcp_max_orphans"
+	echo "Wait 10 seconds for kernel to clear all fin_wait1 sockets..."
+	sleep 10
+	sudo -E sh -c "echo $original_value > /proc/sys/net/ipv4/tcp_max_orphans"
+}
+
+usage() {
+	cat >&2 <<EOL
+Install tools related to this project.
+Usage:
+$myname options tools ...
+
+options:
+	--help|-h                   Print this help message
+
+targets:
+    fin_wait1
+
+Example:
+    $myname fin_wait1
+EOL
+	exit 1
+}
+
+POSITIONAL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+	case $1 in
+	--help | -h)
+		usage
+		;;
+	--* | -*)
+		echo "Unknown option $1"
+		usage
+		;;
+	*)
+		POSITIONAL_ARGS+=("$1") # save positional arg
+		shift                   # past argument
+		;;
+	esac
+done
+
+set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
+
+for arg in "$@"; do
+	case $arg in
+	fin_wait1)
+		clear_fin_wait1
+		;;
+	esac
+done

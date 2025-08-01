@@ -1,0 +1,33 @@
+[package]
+name = "mortise-manager"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+libbpf-rs = { workspace = true }
+libc = { workspace = true }
+# plain = "0.2"
+# time = { version = "0.3", features = ["formatting", "local-offset", "macros"] }
+clap = { workspace = true }
+tokio = { workspace = true }
+ctrlc = { workspace = true }
+tokio-util = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+futures = { workspace = true }
+# privdrop = "0.5"
+nix = { workspace = true, features = ["process", "resource"] }
+mortise-common = { path = "../mortise-common" }
+# speedy = "0.8.6"
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap-repl = "0.1.0"
+rustc-hash = { workspace = true }
+shared_memory = "0.12.4"
+plain = { workspace = true }
+
+[build-dependencies]
+libbpf-cargo = { workspace = true }

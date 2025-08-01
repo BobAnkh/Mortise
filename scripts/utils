@@ -1,0 +1,76 @@
+#!/bin/bash
+
+mk_folder() {
+	for arg in "$@"; do
+		mk_one_folder "$arg"
+	done
+}
+
+mk_one_folder() {
+	if [ ! -d "$1" ]; then
+		mkdir -p "$1"
+		echo "Create folder $1"
+	fi
+}
+
+fix_git_tls_110_error() {
+	sudo apt-get -qq install gnutls-bin -y
+	git config --global http.sslVerify false
+	git config --global http.postBuffer 1048576000
+}
+
+git_clone() {
+	local retry=0
+	local max_retry=3
+	while [ $retry -lt $max_retry ]; do
+		git clone "$@" && break
+		retry=$((retry + 1))
+		if [ $retry -eq 1 ]; then
+			fix_git_tls_110_error
+		fi
+		echo "Retry $retry times..."
+	done
+	if [ $retry -ge $max_retry ]; then
+		echo "Failed to perform: git clone $*."
+		exit 1
+	fi
+}
+
+change_source_list() {
+	sudo sed -i "s@http://.*archive.ubuntu.com@https://mirrors.tuna.tsinghua.edu.cn@g" /etc/apt/sources.list
+	sudo sed -i "s@http://.*security.ubuntu.com@https://mirrors.tuna.tsinghua.edu.cn@g" /etc/apt/sources.list
+	sudo sed -i "s@https://.*edge.kernel.org@https://mirrors.tuna.tsinghua.edu.cn@g" /etc/apt/sources.list
+}
+
+build_cc_km() {
+	local cc_module_path=$1
+	cd "$cc_module_path" || exit 1
+	make && sudo make install
+}
+
+run_tcpdump_non_root() {
+	sudo groupadd pcap
+	sudo usermod -a -G pcap "$USER"
+	sudo chgrp pcap /usr/bin/tcpdump
+	sudo chmod 755 /usr/bin/tcpdump
+	sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/tcpdump
+	echo "*ATTENTION*: Please exit and re-login to make the privilege take effect."
+}
+
+update_alternatives() {
+	echo "1: $1"
+	echo "4: $4"
+	echo "5: $5"
+	local version=${1}
+	local priority=${2}
+	local master=${3}
+	local slaves=${4}
+	local path=${5}
+	local cmdln
+
+	cmdln="--verbose --install ${path}${master} ${master} ${path}${master}-${version} ${priority}"
+	for slave in ${slaves}; do
+		cmdln="${cmdln} --slave ${path}${slave} ${slave} ${path}${slave}-${version}"
+	done
+	sudo update-alternatives ${cmdln}
+}

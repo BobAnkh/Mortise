@@ -1,0 +1,15 @@
+[common]
+result_directory = "./result/baseline/trade-off"
+tasks = 1
+
+[sender]
+pcap = false
+trace = "./traces/change.trace"
+iteration = 1
+delay = 10
+queue = "droptail"
+buffer_size = "packets=100"
+frame_cnt = 5000
+tcp_ca = "cubic"
+mode_cnt = 1
+app = "bulk"

@@ -1,0 +1,58 @@
+#!/bin/bash
+
+myname=${0##*/}
+# shellcheck disable=SC1091
+source "scripts/utils"
+
+uninstall_mahimahi() {
+	cd /home/vagrant/tools/mahimahi || exit 1
+	sudo make uninstall
+}
+
+usage() {
+	cat >&2 <<EOL
+Uninstall tools related to this project.
+Usage:
+$myname options tools ...
+
+options:
+
+tools:
+    mahimahi
+
+    tools can be repeted to uninstall multiple tools
+
+Example:
+    $myname mahimahi
+EOL
+	exit 1
+}
+
+POSITIONAL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+	case $1 in
+	--help | -h)
+		usage
+		;;
+	--* | -*)
+		echo "Unknown option $1"
+		usage
+		;;
+	*)
+		POSITIONAL_ARGS+=("$1") # save positional arg
+		shift                   # past argument
+		;;
+	esac
+done
+
+set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
+
+for arg in "$@"; do
+	case $arg in
+	mahimahi)
+		uninstall_mahimahi
+		echo "Uninstall pruned mahimahi done!"
+		;;
+	esac
+done

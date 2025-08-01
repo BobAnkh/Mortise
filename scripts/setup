@@ -1,0 +1,113 @@
+#!/bin/bash
+
+myname=${0##*/}
+# shellcheck disable=SC1091
+source "scripts/utils"
+
+setup_vm_new() {
+	echo '[SETUP][VM] Setup VM...'
+	local change_source=$1
+	echo '[SETUP][VM] Prepare folders...'
+	mk_folder /home/vagrant/tools && chown -R vagrant:vagrant tools
+
+	echo '[SETUP][VM] Installing some essential dependencies...'
+	if [ "$change_source" = true ]; then
+		echo '[SETUP][VM] Change source...'
+		change_source_list
+	fi
+	sudo apt-get -qq update -y
+	sudo apt -qq install make libxt6 libxmu6 build-essential libncurses-dev bison flex libssl-dev libelf-dev python-dev-is-python3 linux-tools-common autoconf libtool pkg-config -y
+
+	cd /home/vagrant || exit 1
+
+	echo '[SETUP][VM] Install pahole to enable btf...'
+	if ! scripts/install pahole; then
+		exit 1
+	fi
+
+	echo '[SETUP][VM] Enable the IP forward'
+	sudo sysctl -w net.ipv4.ip_forward=1
+	echo '[SETUP][VM] Configure tcpdump to run as non-root'
+	run_tcpdump_non_root
+	echo '[SETUP][VM] Set up mortise done.'
+}
+
+setup_bpf() {
+	echo '[SETUP][BPF] Setup bpf...'
+	echo '[SETUP][BPF] Installing required tools...'
+	sudo apt -qq install llvm gcc-multilib libelf-dev libbpf-dev linux-tools-common -y
+	echo '[SETUP][BPF] Setup bpf done.'
+}
+
+setup_mortise() {
+	echo '[SETUP][MORTISE] Setup mortise experiment environment...'
+	echo '[SETUP][MORTISE] Installing required tools...'
+	scripts/install rust mahimahi
+	echo '[SETUP][MORTISE] Enable the IP forward'
+	sudo sysctl -w net.ipv4.ip_forward=1
+	echo '[SETUP][MORTISE] Configure tcpdump to run as non-root'
+	run_tcpdump_non_root
+	echo '[SETUP][MORTISE] Build mortise-copa algorithm'
+	cd algorithm/bpf-kern && sudo make build/mortise_copa.bpf.o
+	echo '[SETUP][MORTISE] Set up mortise done.'
+}
+
+usage() {
+	cat >&2 <<EOL
+Setup envs related to this project.
+Usage:
+$myname options envs ...
+
+options:
+    --help|-h                   Print this help message
+
+envs:
+    vm-new                      Setup vm envs(kernel side)
+    bpf                         Setup bpf envs
+    mortise                     Setup mortise experiment envs
+
+    envs can be repeted to setup successively
+
+Example:
+    $myname vm
+EOL
+	exit 1
+}
+
+POSITIONAL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+	case $1 in
+	--help | -h)
+		usage
+		;;
+	--change_src)
+		CHANGE_SOURCE=true
+		shift # past argument
+		;;
+	--* | -*)
+		echo "Unknown option $1"
+		usage
+		;;
+	*)
+		POSITIONAL_ARGS+=("$1") # save positional arg
+		shift                   # past argument
+		;;
+	esac
+done
+
+set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
+
+for arg in "$@"; do
+	case $arg in
+	vm-new)
+		setup_vm_new "$CHANGE_SOURCE"
+		;;
+	bpf)
+		setup_bpf
+		;;
+	mortise)
+		setup_mortise
+		;;
+	esac
+done

@@ -1,0 +1,25 @@
+[package]
+name = "mortise-common"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# anyhow = "1.0"
+libbpf-rs = { workspace = true }
+libc = { workspace = true }
+# time = { version = "0.3", features = ["formatting", "local-offset", "macros"]}
+socket2 = { workspace = true }
+nix = { workspace = true, features = ["time"] }
+serde = { workspace = true }
+clap = { workspace = true }
+plain = { workspace = true }
+speedy = { workspace = true }
+thiserror = "1.0.49"
+tracing = { workspace = true }
+tokio = { workspace = true }
+tcp-info-sys = "0.1.1"
+
+[build-dependencies]
+libbpf-cargo = { workspace = true }

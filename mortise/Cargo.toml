@@ -1,0 +1,33 @@
+[workspace]
+members = ["mortise-common", "mortise-manager", "traffic", "multitask"]
+resolver = "2"
+
+[workspace.dependencies]
+bytes = "1.4.0"
+clap = { version = "4.5", features = ["derive"] }
+ctrlc = { version = "3.2", features = ["termination"] }
+futures = "0.3.28"
+libbpf-cargo = "0.20"
+libbpf-rs = "0.21.2"
+libc = "0.2"
+nix = { version = "0.26" }
+plain = "0.2"
+rustc-hash = "1.1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+socket2 = { version = "0.5.1", features = ["all"] }
+speedy = { version = "0.8.7" }
+tokio = { version = "1.40", features = [
+  "fs",
+  "macros",
+  "rt-multi-thread",
+  "parking_lot",
+  "signal",
+  "net",
+  "time",
+  "sync",
+  "io-util",
+] }
+tokio-util = { version = "0.7", features = ['codec'] }
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }

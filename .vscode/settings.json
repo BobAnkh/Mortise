@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "bpf_tcp_helpers.h": "c",
+        "bpf_helpers.h": "c"
+    }
+}

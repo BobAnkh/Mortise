@@ -1,0 +1,211 @@
+#!/bin/bash
+
+myname=${0##*/}
+# shellcheck disable=SC1091
+source "scripts/utils"
+
+RUST_INSTALL_URL="https://sh.rustup.rs"
+PAHOLE_INSTALL_URL="https://git.kernel.org/pub/scm/devel/pahole/pahole.git"
+LLVM_INSTALL_URL="https://github.com/llvm/llvm-project.git"
+MAHIMAHI_INSTALL_URL="https://github.com/BobAnkh/mahimahi-prune.git"
+
+install_rust() {
+	echo '[INSTALL][RUST] Installing rust...'
+	echo "[INSTALL][RUST] Rustc check..."
+	if command -v rustc >/dev/null 2>&1; then
+		echo '[INSTALL][RUST] Exists rustc...skip intstall!'
+	else
+		echo '[INSTALL][RUST] No exists rustc...install rust!'
+		sudo apt -qq install curl -y
+		curl --proto '=https' --tlsv1.2 -sSf "$RUST_INSTALL_URL" | sh -s -- -y
+		# shellcheck disable=SC1091
+		source "$HOME"/.cargo/env
+		echo "[INSTALL][RUST] Install rust done!"
+	fi
+}
+
+install_pahole() {
+	echo '[INSTALL][PAHOLE] Installing pahole...'
+	if command -v pahole >/dev/null 2>&1; then
+		echo '[INSTALL][PAHOLE] Exists pahole...skip intstall!'
+	else
+		echo '[INSTALL][PAHOLE] Downloading dependencies...'
+		sudo apt -qq update -y && sudo apt -qq install clang libdw-dev libdw1 libdwarf1 libdwarf-dev cmake -y
+		cd /home/vagrant/tools && git_clone --depth=1 "$PAHOLE_INSTALL_URL" pahole && cd pahole || exit 1
+		echo '[INSTALL][PAHOLE] Configuring pahole...'
+		mk_folder build && cd build && cmake -D__LIB=lib ..
+		echo '[INSTALL][PAHOLE] Building pahole...'
+		sudo make install
+		sudo ldconfig /usr/local/lib
+		if ! pahole --version; then
+			echo '[INSTALL][PAHOLE] Install pahole failed!'
+			exit 1
+		fi
+		echo "[INSTALL][PAHOLE] Install pahole done!"
+	fi
+}
+
+update_llvm_alternative() {
+	if [ $# -ne 2 ]; then
+		echo Usage: update_llvm_alternative version priority
+		exit 1
+	fi
+
+	version=${1}
+	priority=${2}
+	path="/usr/bin/"
+
+	master="llvm-config"
+	slaves="llvm-addr2line llvm-ar llvm-as llvm-bcanalyzer llvm-bitcode-strip llvm-cat llvm-cfi-verify llvm-cov llvm-c-test llvm-cvtres llvm-cxxdump llvm-cxxfilt llvm-cxxmap llvm-debuginfod llvm-debuginfod-find llvm-diff llvm-dis llvm-dlltool llvm-dwarfdump llvm-dwarfutil llvm-dwp llvm-exegesis llvm-extract llvm-gsymutil llvm-ifs llvm-install-name-tool llvm-jitlink llvm-jitlink-executor llvm-lib llvm-libtool-darwin llvm-link llvm-lipo llvm-lto llvm-lto2 llvm-mc llvm-mca llvm-ml llvm-modextract llvm-mt llvm-nm llvm-objcopy llvm-objdump llvm-omp-device-info llvm-opt-report llvm-otool llvm-pdbutil llvm-PerfectShuffle llvm-profdata llvm-profgen llvm-ranlib llvm-rc llvm-readelf llvm-readobj llvm-reduce llvm-remark-size-diff llvm-rtdyld llvm-sim llvm-size llvm-split llvm-stress llvm-strings llvm-strip llvm-symbolizer llvm-tapi-diff llvm-tblgen llvm-tli-checker llvm-undname llvm-windres llvm-xray"
+
+	update_alternatives "${version}" "${priority}" "${master}" "${slaves}" "${path}"
+
+	master="clang"
+	slaves="analyze-build asan_symbolize bugpoint c-index-test clang++ clang-apply-replacements clang-change-namespace clang-check clang-cl clang-cpp clangd clang-doc clang-extdef-mapping clang-format clang-format-diff clang-include-fixer clang-linker-wrapper clang-move clang-nvlink-wrapper clang-offload-bundler clang-offload-packager clang-offload-wrapper clang-pseudo clang-query clang-refactor clang-rename clang-reorder-fields clang-repl clang-scan-deps clang-tidy count diagtool dsymutil FileCheck find-all-symbols git-clang-format hmaptool hwasan_symbolize intercept-build ld64.lld ld.lld llc lld lldb lldb-argdumper lldb-instr lldb-server lldb-vscode lld-link lli lli-child-target modularize not obj2yaml opt pp-trace run-clang-tidy sancov sanstats scan-build scan-build-py scan-view split-file UnicodeNameMappingGenerator verify-uselistorder wasm-ld yaml2obj yaml-bench"
+
+	update_alternatives "${version}" "${priority}" "${master}" "${slaves}" "${path}"
+}
+
+install_llvm() {
+	local llvm_version=${1:-"17"}
+	echo "[INSTALL][LLVM] Installing llvm version: $llvm_version..."
+	cd /home/vagrant/tools && mk_folder llvm && cd llvm || exit 1
+	wget https://apt.llvm.org/llvm.sh
+	# shellcheck disable=SC2016
+	sed -i 's/add-apt-repository "\${REPO_NAME}"/add-apt-repository -y "\${REPO_NAME}"/' llvm.sh
+	chmod +x llvm.sh
+	sudo -E ./llvm.sh "$llvm_version"
+	sudo apt install llvm clang -y
+	update_llvm_alternative "$llvm_version" 10
+	echo "[INSTALL][LLVM] Install llvm done!"
+}
+
+install_llvm_manual() {
+	local generator_arg=${1:-"unix"}
+	local generator='Unix Makefiles'
+	case $generator_arg in
+	ninja)
+		generator='Ninja'
+		echo "[INSTALL][LLVM] Installing self-compiled llvm with $generator..."
+		sudo apt install ninja-build -y
+		;;
+	unix)
+		generator='Unix Makefiles'
+		echo "[INSTALL][LLVM] Installing self-compiled llvm with $generator..."
+		;;
+	*)
+		echo "[INSTALL][LLVM] Unknown generator $generator_arg"
+		exit 1
+		;;
+	esac
+	sudo apt -qq update -y && sudo apt -qq install clang lld cmake -y
+	cd /home/vagrant/tools && git_clone --depth=1 "$LLVM_INSTALL_URL" llvm-project
+	cd llvm-project && mk_folder build && cd build || exit
+	cmake -G "$generator" -DLLVM_ENABLE_PROJECTS="clang" -DLLVM_TARGETS_TO_BUILD="X86;BPF" -DCMAKE_BUILD_TYPE="Release" -DLLVM_INCLUDE_TESTS=OFF ../llvm
+	cmake --build . -j "$(nproc)"
+	sudo cmake --build . --target install
+	echo "[INSTALL][LLVM] Install llvm(self-compiled) done!"
+}
+
+install_bpftool() {
+	local kern_version=${1:-"6.8"}
+	echo "[INSTALL][BPFTOOL] Installing bpftool..."
+	sudo apt -qq install gcc-multilib libbpf-dev -y
+	cd "/home/vagrant/kern_src/linux-${kern_version}/tools/bpf/bpftool" || exit 1
+	sudo make && sudo make install
+	echo "[INSTALL][BPFTOOL] Install bpftool done!"
+}
+
+install_mahimahi() {
+	echo '[INSTALL][MAHIMAHI] Installing Mahimahi...'
+	if command -v mm-delay >/dev/null 2>&1; then
+		echo '[INSTALL][MAHIMAHI] Exists mahimahi...skip intstall!'
+	else
+		echo '[INSTALL][MAHIMAHI] Installing dependencies...'
+		sudo apt -qq update -y && sudo apt-get -qq install autotools-dev autoconf libtool libssl-dev xcb libxcb-composite0-dev libxcb-present-dev libcairo2-dev libpango1.0-dev dnsmasq -y
+		sudo sysctl -w net.ipv4.ip_forward=1
+		cd /home/vagrant/tools && git_clone "$MAHIMAHI_INSTALL_URL" mahimahi
+		cd /home/vagrant/tools/mahimahi || exit 1
+		echo '[INSTALL][MAHIMAHI] Building Mahimahi...'
+		./autogen.sh && ./configure && make
+		sudo make install
+		echo "[INSTALL][MAHIMAHI] Install pruned mahimahi done!"
+	fi
+}
+
+usage() {
+	cat >&2 <<EOL
+Install tools related to this project.
+Usage:
+$myname options tools ...
+
+options:
+    --help|-h                   Print this help message
+    --kern-version              Specify kernel version to be installed [default: 6.8]
+    --customize-kern-config     Customize kernel configuration [ubuntu, current, default]
+
+tools:
+    mahimahi                    Install a pruned version of network emulation tool mahimahi
+    rust                        Install rust toolchain
+    pahole                      Install pahole for enabling btf
+    llvm                        Install llvm for compling bpf programs
+    bpftool                     Install bpftool for debugging bpf programs
+
+    tools can be repeted to install multiple tools
+
+Example:
+    $myname --customize-kern-config  mahimahi kern
+EOL
+	exit 1
+}
+
+POSITIONAL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+	case $1 in
+	--help | -h)
+		usage
+		;;
+	--kern-version | -m)
+		KERN_VERSION=$2
+		shift # past argument
+		shift # past value
+		;;
+	--* | -*)
+		echo "Unknown option $1"
+		usage
+		;;
+	*)
+		POSITIONAL_ARGS+=("$1") # save positional arg
+		shift                   # past argument
+		;;
+	esac
+done
+
+set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
+
+for arg in "$@"; do
+	case $arg in
+	mahimahi)
+		install_mahimahi
+		;;
+	rust)
+		install_rust
+		;;
+	pahole)
+		install_pahole
+		;;
+	llvm)
+		install_llvm 16
+		;;
+	llvm-alternative)
+		update_llvm_alternative "$llvm_version" 10
+		;;
+	llvm-manual)
+		install_llvm_manual ninja
+		;;
+	bpftool)
+		install_bpftool "$KERN_VERSION"
+		;;
+	esac
+done

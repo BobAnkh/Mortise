@@ -1,0 +1,23 @@
+[package]
+name = "multitask"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+clap = { workspace = true }
+futures = { workspace = true }
+polars = { version = "0.28.0", features = ["lazy", "serde"] }
+tokio = { workspace = true, features = ["process"] }
+# traffic = { path = "../traffic" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+backon = "0.4.0"
+config = "0.13.3"
+mongodb = "3.1.0"
+indicatif = "0.17.5"
+humantime = "2.1.0"
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
