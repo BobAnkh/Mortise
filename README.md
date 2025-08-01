@@ -256,6 +256,8 @@ bash run-mortise.sh
 
 ### 3. Test Baseline Algorithms
 
+> You have to wait several minutes between each run of `run-mortise.sh` or `run-baseline.sh` for server address to be released
+
 Test baseline algorithms (e.g., Cubic or BBR):
 
 ```bash
