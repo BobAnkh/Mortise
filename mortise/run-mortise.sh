@@ -37,7 +37,7 @@ run_all_traces() {
 	trace_idx=0
 	trace_finish=0
 	# multitask
-	MAX_CONCURRENT_EXP=12
+	MAX_CONCURRENT_EXP=6
 	cur_concurrent_exp=0
 	base_port=10001
 	while [ "$trace_finish" -lt "${#traces[@]}" ]; do
