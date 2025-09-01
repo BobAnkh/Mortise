@@ -170,7 +170,7 @@ Executables will be generated in `target/release/`.
 ### Basic Usage
 
 Although we are not allowed to provide the full set of workloads for evaluating performance in our paper, we offer two workload traces as a demonstration.
-The `workload/demo.wk` is used for testing fuckability and debugging, while `workload/app.wk` is an anonymized workload record collected from real services in our production environment.
+The `workload/demo.wk` is used for testing functionality and debugging, while `workload/app.wk` is an anonymized workload record collected from real services in our production environment.
 
 **Workload Format**: Each workload file contains two columns of numbers representing:
 
