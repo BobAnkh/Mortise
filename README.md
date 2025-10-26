@@ -135,7 +135,7 @@ sudo make install
 #### Category 3: Machine Learning-based Algorithms
 
 These algorithms use machine learning models and require specific setup procedures (e.g., Antelope, Orca).
-Currently, we refer readers to the steps and guidelines provided by their official code repositories to install and run these CCAs.
+Currently, we refer readers to the steps and guidelines provided by their official code repositories to install and run these CCAs (e.g., [Antelope Repo](https://github.com/antelopeproject/antelope), [Orca Repo](https://github.com/Soheil-ab/Orca), [DeepCC](https://github.com/Soheil-ab/DeepCC.v1.0)).
 After installation, they can also be run in a similar manner to the other two categories.
 
 <!-- ```bash -->
